@@ -21,10 +21,46 @@ class CentroidTracker():
 	def update_centroid(self, rects):
 		# rects: every set of calculated rects for each frame
 		if len(rects) == 0:
-			for object_id in list(self.disappeared_frames_dict.keys()):
-				self.disappeared_frames_dict[objectt_id] += 1
+			for obj_id in list(self.disappeared_frames_dict.keys()):
+				self.disappeared_frames_dict[obj_id] += 1
 
-				if self.disappeared_frames_dict[objectt_id] > self.max_frames_to_disappear:
-					self.deregister_obj(object_id)
+				if self.disappeared_frames_dict[obj_id] > self.max_frames_to_disappear:
+					self.deregister_obj(obj_id)
 
-			return self.obj_id
+			return self.objs_dict
+
+		# 2 for col means (centroid_x, centroid_y) 
+		input_centroids = np.zeros((len(rects), 2), dtype="int")
+
+		# calculate centroids from the bboxes
+		for (i, (start_x, start_y, end_x, end_y)) in enumerate(rects):
+			centroid_x = int((start_x + end_x) / 2.0)
+			centroid_y = int((start_y + end_y) / 2.0)
+			input_centroids[i] = (centroid_x, centroid_y)
+
+		# if there is no registered objects, register found objects
+		if len(self.objs_dict) == 0:
+			for i in range(len(input_centroids)):
+				self.register_new_obj(input_centroids[i])
+		else:
+			obj_ids = list(self.objs_dict.keys())
+			obj_centroids = list(self.objs_dict.values())
+
+			# dist.cdist(XA, XB, metric='euclidean', *args, **kwargs)
+			# Compute distance between each pair of the existing objects centroids
+			# and new input centroids.
+			distance = dist.cdist(np.array(obj_centroids), input_centroids, metric="euclidean")
+			rows = distance.min(axis=1).argsort()
+			cols = distance.argmin(axis=1)[rows]
+
+			used_rows = set()
+			used_cols = set()
+
+			for (raw, col) in zip(rows, cols):
+				if row in used_rows or col in used_cols:
+					continue
+
+				obj_id = obj_ids[row]
+				self.objs_dict[obj_id] = input_centroids[col]
+				# reset the disapeared counter for the object id
+				self.disappeared_frames_dict[obj_id] = 0
