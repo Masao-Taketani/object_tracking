@@ -53,10 +53,11 @@ class CentroidTracker():
 			rows = distance.min(axis=1).argsort()
 			cols = distance.argmin(axis=1)[rows]
 
+			# generate set object by the constructor
 			used_rows = set()
 			used_cols = set()
 
-			for (raw, col) in zip(rows, cols):
+			for (row, col) in zip(rows, cols):
 				if row in used_rows or col in used_cols:
 					continue
 
@@ -64,3 +65,25 @@ class CentroidTracker():
 				self.objs_dict[obj_id] = input_centroids[col]
 				# reset the disapeared counter for the object id
 				self.disappeared_frames_dict[obj_id] = 0
+
+				used_rows.add(row)
+				used_cols.add(col)
+
+			# to find unused centroids for disappeared & new objects
+			unused_rows = set(range(distance.shape[0])).difference(used_rows)
+			unused_cols = set(range(distance.shape[1])).difference(used_cols)
+
+			# in case that obj centroids >= input centroids
+			if distance.shape[0] >= distance.shape[1]:
+				for row in unused_rows:
+					obj_id = obj_ids[row]
+					self.disappeared_frames_dict[obj_id] += 1
+
+					if self.disappeared_frames_dict[obj_id] > self.max_frames_to_disappear:
+						self.deregister_obj(obj_id)
+			# else we need to register new objects
+			else:
+				for col in unused_cols:
+					self.register_new_obj(input_centroids[col])
+
+		return self.objs_dict
