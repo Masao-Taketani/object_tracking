@@ -11,9 +11,9 @@ import cv2
 
 
 ap = argparse.ArgumentParser()
-ap.add_argument("-p", "--prototxt", default="mobilenet_ssd_model/",\
+ap.add_argument("-p", "--prototxt", default="mobilenet_ssd_model/MobileNetSSD_deploy.prototxt",\
 	help="path to Caffe prototxt file")
-ap.add_argument("-m", "--model", default="mobilenet_ssd_model/",\
+ap.add_argument("-m", "--model", default="mobilenet_ssd_model/MobileNetSSD_deploy.caffemodel",\
 	help="path to Caffe pre-trained model")
 ap.add_argument("-i", "--input", type=str,\
 	help="path to optional input video file. If None, it will start\
@@ -51,7 +51,7 @@ writer = None
 W = None
 H = None
 
-cent_tracker = CentroidTracker(max_disappeared=40, max_distance=50)
+cent_tracker = CentroidTracker(max_frames_to_disappear=40, max_distance=50)
 trackers = []
 trackable_objs_dict = {}
 
@@ -89,7 +89,7 @@ while True:
 	rects = []
 
 	# detection phase
-	if totalFrames % args["skip_frames"] == 0:
+	if total_frames % args["skip_frames"] == 0:
 		status = "Detecting"
 		trackers = []
 
@@ -133,7 +133,7 @@ while True:
 
 	cv2.line(frame, (0, H // 2), (W, H // 2), (0, 255, 255), 2)
 
-	objs = cent_tracker.update(rects)
+	objs = cent_tracker.update_centroid(rects)
 
 	for (obj_id, centroid) in objs.items():
 		tra_objs = trackable_objs_dict.get(obj_id, None)
@@ -161,7 +161,7 @@ while True:
 
 	info = [
 		("Up", total_ups),
-		("Down", total_downs)
+		("Down", total_downs),
 		("Status", status)
 	]
 
@@ -194,4 +194,4 @@ if not args.get("input", False):
 else:
 	vs.release()
 
-cv2.destroyALLWindows()
+cv2.destroyAllWindows()
