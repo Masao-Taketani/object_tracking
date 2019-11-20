@@ -3,11 +3,12 @@ from collections import OrderedDict
 import numpy as np
 
 class CentroidTracker():
-	def __init__(self, max_frames_to_disappear=50):
+	def __init__(self, max_frames_to_disappear=50, max_dist=50):
 		self.next_obj_id = 0
 		self.objs_dict = OrderedDict()
 		self.disappeared_frames_dict = OrderedDict()
 		self.max_frames_to_disappear = max_frames_to_disappear
+		self.max_dist = max_dist
 
 	def register_new_obj(self, centroid):
 		self.objs_dict[self.next_obj_id] = centroid
@@ -59,6 +60,9 @@ class CentroidTracker():
 
 			for (row, col) in zip(rows, cols):
 				if row in used_rows or col in used_cols:
+					continue
+
+				if distance[row, col] > self.max_dist:
 					continue
 
 				obj_id = obj_ids[row]
